@@ -1,0 +1,1 @@
+https://sha-sha.github.io/checkers/

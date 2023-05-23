@@ -1,0 +1,38 @@
+.board {
+  background-image: url("assets/board.jpg");
+  background-size: contain;
+  position: relative;
+}
+
+.boardElement {
+  z-index: 4;
+  position: absolute;
+  background-size: contain;
+}
+
+.boardElement img {
+  width: 100%;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.boardElement .tok-wh-1 {
+  background-size: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.tok-bl-1 {
+  background-size: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.tok-marker {
+  background-image: url("assets/marker.png");
+  z-index: 10;
+}

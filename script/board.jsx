@@ -1,5 +1,6 @@
 const WHITE_SINGLE_ELEMENT = "tok-wh-1"
 const BLACK_SINGLE_ELEMENT = "tok-bl-1"
+const MARKER_ELEMENT = "tok-marker"
 const EMPTY_ELEMENT = "empty"
 
 const BOARD_PADDING = { x: 28, y: 25 }
@@ -9,6 +10,7 @@ const ELEMENT_SIZE = { x: 78, y: 78 }
 const ASSETS = {
   "tok-wh-1": "assets/white_1.png",
   "tok-bl-1": "assets/black_1.png",
+  "tok-marker": "assets/marker.png"
 }
 
 const createContext = React.createContext

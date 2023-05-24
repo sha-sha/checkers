@@ -1,21 +1,35 @@
 
 
-
-
-class BoardData {
-  constructor() {
-    this.content = []
-    this.clear()
+class Position {
+  row = 0
+  col = 0
+  constructor(row, col) {
+    this.row = row
+    this.col = col
   }
 
-  clear() {
-    this.content = new Array(8)
-    for (let row = 0; row < 8; row++) {
-      this.content[row] = new Array(8).fill(null)
+  toString() {
+    return `[${this.row},${this.col}]`
+  }
+
+  isEqual(other) {
+    return this.row === other.row && this.col === other.col
+  }
+}
+
+class BoardDataBuilder {
+  constructor(boardData) {
+    if (boardData) {
+      this.content = [...boardData.content]
+    } else {
+      this.content = new Array(8)
+      for (let row = 0; row < 8; row++) {
+        this.content[row] = new Array(8).fill(null)
+      }
     }
   }
 
-  resetNewGame() {
+  newGame() {
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 == 0) {
@@ -24,7 +38,38 @@ class BoardData {
           this.content[row][col] = BLACK_SINGLE_ELEMENT;
         } else if (row >= 5) {
           this.content[row][col] = WHITE_SINGLE_ELEMENT;
+        } else {
+          this.content[row][col] = EMPTY_ELEMENT;
         }
+      }
+    }
+    return this
+  }
+
+  move(from, to, emptyType = EMPTY_ELEMENT) {
+    this.content[to.row][to.col] = this.content[from.row][from.col]
+    this.content[from.row][from.col] = emptyType
+    return this
+  }
+
+  clear(pos, emptyType = EMPTY_ELEMENT) {
+    this.content[pos.row][pos.col] = emptyType
+    return this
+  }
+
+  build() {
+    return new BoardData(this.content)
+  }
+}
+
+class BoardData {
+  constructor(content) {
+    if (content) {
+      this.content = [...content]
+    } else {
+      this.content = new Array(8)
+      for (let row = 0; row < 8; row++) {
+        this.content[row] = new Array(8).fill(null)
       }
     }
   }
@@ -44,7 +89,9 @@ class BoardData {
     return elements
   }
 
-  possibleMoves(row, col) {
+  possibleMoves(pos) {
+    console.info(`possibleMoves for ${pos}`)
+    const { row, col } = pos
     const type = this.content[row][col]
     if (!type || type == EMPTY_ELEMENT) return []
     const opponent = type == WHITE_SINGLE_ELEMENT ? BLACK_SINGLE_ELEMENT : WHITE_SINGLE_ELEMENT
@@ -52,22 +99,25 @@ class BoardData {
 
     const moves = []
 
-    const fwdLeft = { row: verticalMove, col: col - 1 }
-    const fwdRight = { row: verticalMove, col: col + 1 }
-    const fwdDblLeft = { row: verticalMove * 2, col: col - 2 }
-    const fwdDblRight = { row: verticalMove * 2, col: col + 2 }
+    const fwdLeft = new Position(row + verticalMove, col - 1)
+    const fwdRight = new Position(row + verticalMove, col + 1)
+    const fwdDblLeft = new Position(row + verticalMove * 2, col - 2)
+    const fwdDblRight = new Position(row + verticalMove * 2, col + 2)
+
+    console.info(`checking ${[fwdLeft, fwdRight, fwdDblLeft, fwdDblRight]}`)
 
     const s = []
     // simple
-    moves.push(...[fwdLeft, fwdRight].filter(pos => getType(pos) == EMPTY_ELEMENT))
+    moves.push(...[fwdLeft, fwdRight].filter(pos => this.isEmpty(pos)))
 
     // eating once
-    if (getType(fwdLeft) == opponent && getType(fwdDblLeft) == EMPTY_ELEMENT) {
+    if (this.getType(fwdLeft) == opponent && this.isEmpty(fwdDblLeft)) {
       moves.push(fwdDblLeft)
     }
-    if (getType(fwdRight) == opponent && getType(fwdDblRight) == EMPTY_ELEMENT) {
+    if (this.getType(fwdRight) == opponent && this.isEmpty(fwdDblRight)) {
       moves.push(fwdDblRight)
     }
+    console.info(`moves: ${moves}`)
     return moves
   }
 
@@ -77,23 +127,61 @@ class BoardData {
     return this.content[pos.row][pos.col]
   }
 
+  isPlayer(pos) {
+    return this.getType(pos) == WHITE_SINGLE_ELEMENT || this.getType(pos) == BLACK_SINGLE_ELEMENT
+  }
+
+  isWhite(pos) {
+    return this.getType(pos) == WHITE_SINGLE_ELEMENT
+  }
+
+  isBlack(pos) {
+    return this.getType(pos) == BLACK_SINGLE_ELEMENT
+  }
+
+  isEmpty(pos) {
+    return this.getType(pos) == EMPTY_ELEMENT
+  }
 }
 
 
-function MyApp() {
-  let board = new BoardData()
-  board.resetNewGame()
+function Game() {
+  const [whiteTurn, setWhiteTurn] = React.useState(true)
+  const [selected, setSelected] = React.useState(null)
+  const [possibleMoves, setPossibleMoves] = React.useState([])
+  const [board, setBoard] = React.useState(null)
 
-  const onClick = (row, col, type) => {
-    console.info(`click ${row} ${col} ${type}`)
+  if (!board) {
+    const b = new BoardDataBuilder().newGame().build()
+    setBoard(b)
   }
 
+  const onClick = (row, col, type) => {
+    const pos = new Position(row, col)
+    if (possibleMoves.find(p => p.isEqual(pos))) {
+      setBoard(new BoardDataBuilder(board).move(selected, pos).build())
+      setSelected(null)
+      setPossibleMoves([])
+      setWhiteTurn(!whiteTurn)
+    } else if (board.isPlayer(pos) && (board.isWhite(pos) == whiteTurn)) {
+      setSelected(pos)
+      setPossibleMoves(board.possibleMoves(pos))
+    }
+  }
 
   return <>
     <Board zoom={0.8} width={200} height={200}>
-      {board.toBoardElements(onClick)}
+      {board && board.toBoardElements(onClick)}
+      {possibleMoves.map(
+        pos => <BoardElement onClick={() => onClick(pos.row, pos.col, MARKER_ELEMENT)} key={`m${pos}`} row={pos.row} col={pos.col} type={MARKER_ELEMENT} />
+      )}
     </Board>
   </>
+
+}
+
+function MyApp() {
+  return <Game />
 }
 
 const container = document.getElementById('root');
